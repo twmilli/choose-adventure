@@ -7,6 +7,6 @@ import (
 )
 
 func main() {
-	handler := cyoa.MainHandler{}
+	handler := cyoa.NewMainHandler()
 	http.ListenAndServe(":8080", handler)
 }

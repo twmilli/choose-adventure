@@ -6,26 +6,42 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"text/template"
 )
-
-type Option struct {
-	Text string `json:"text"`
-	Arc  string `json:"arc"`
-}
 
 type storyChapter struct {
 	Title     string   `json:"title"`
 	StoryText []string `json:"story"`
-	Options   []Option `json:"options"`
+	Options   []struct {
+		Text string `json:"text"`
+		Arc  string `json:"arc"`
+	} `json:"options"`
 }
 
 // MainHandler Main HTTP Handler interface
 type MainHandler struct {
 	storyChapters map[string]storyChapter
+	tmpl          *template.Template
 }
 
 func (h MainHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Hello, world!")
+	key := r.URL.Path[1:]
+	if key == "" {
+		key = "intro"
+	}
+	data, ok := h.storyChapters[key]
+	if !ok {
+		fmt.Fprintf(w, "Unknown route %v\n", r.URL.Path)
+	}
+	h.tmpl.Execute(w, data)
+}
+
+// NewMainHandler creates a new main handler
+func NewMainHandler() MainHandler {
+	return MainHandler{
+		storyChapters: parseStoryChapterJSON("gopher.json"),
+		tmpl:          template.Must(template.ParseFiles("index.html")),
+	}
 }
 
 func parseStoryChapterJSON(fname string) map[string]storyChapter {
@@ -40,6 +56,4 @@ func parseStoryChapterJSON(fname string) map[string]storyChapter {
 	json.Unmarshal([]byte(byteValue), &parsed)
 
 	return parsed
-	// fmt.Println(parsed["intro"])
-	// return nil
 }
